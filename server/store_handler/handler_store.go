@@ -1,6 +1,7 @@
 package store_handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/raft"
@@ -35,10 +36,46 @@ func (h handler) Store(eCtx echo.Context) error {
 	}
 
 	if h.raft.State() != raft.Leader {
+		postBody, _ := json.Marshal(form)
+		responseBody := bytes.NewBuffer(postBody)
+
+		url := fmt.Sprintf("http://%s/store", h.raft.Leader())
+
+		fmt.Println(url)
+		fmt.Printf("%+v", form)
+		fmt.Println(postBody)
+
+		resp, err := http.Post(url, "application/json", responseBody)
+
+		//Handle Error
+		if err != nil {
+			return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+				"error": err,
+			})
+		}
+		defer resp.Body.Close()
+
+		return eCtx.JSON(http.StatusOK, map[string]interface{}{
+			"message": "success persisting data",
+			"data":    form,
+		})
+
+		// return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		// 	"error":  "not the leader",
+		// 	"leader": h.raft.Leader(),
+		// })
+	}
+
+	configFuture := h.raft.GetConfiguration()
+	if err := configFuture.Error(); err != nil {
 		return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
-			"error": "not the leader",
+			"error": fmt.Sprintf("failed to get raft configuration: %s", err.Error()),
 		})
 	}
+
+	fmt.Printf("%+v", configFuture)
+
+	fmt.Printf("on leader: %+v", form)
 
 	payload := fsm.CommandPayload{
 		Operation: "SET",

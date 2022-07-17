@@ -10,5 +10,6 @@ func (h handler) StatsRaftHandler(eCtx echo.Context) error {
 	return eCtx.JSON(http.StatusOK, map[string]interface{}{
 		"message": "Here is the raft status",
 		"data":    h.raft.Stats(),
+		"leader":  h.raft.Leader(),
 	})
 }

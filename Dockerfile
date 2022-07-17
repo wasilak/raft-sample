@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine
+FROM golang:1.18-alpine
 
 RUN apk add --no-cache git
 
@@ -6,12 +6,14 @@ RUN apk add --no-cache git
 WORKDIR /app
 
 # We want to populate the module cache based on the go.{mod,sum} files.
-COPY go.mod .
-COPY go.sum .
+# COPY go.mod .
+# COPY go.sum .
 
-RUN go mod download
+# RUN go mod download
 
 COPY . .
+
+RUN cd cmd/api && go mod tidy
 
 # Build the Go app
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux \

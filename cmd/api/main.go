@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/hashicorp/raft"
@@ -8,23 +10,26 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 	"ysf/raftsample/fsm"
 	"ysf/raftsample/server"
+	"ysf/raftsample/server/raft_handler"
 )
 
 // configRaft configuration for raft node
 type configRaft struct {
 	NodeId    string `mapstructure:"node_id"`
-	Port      int    `mapstructure:"port"`
+	Address   string `mapstructure:"address"`
 	VolumeDir string `mapstructure:"volume_dir"`
 }
 
 // configServer configuration for HTTP server
 type configServer struct {
-	Port int `mapstructure:"port"`
+	Address     string `mapstructure:"address"`
+	JoinAddress string `mapstructure:"join_address"`
 }
 
 // config configuration
@@ -34,18 +39,19 @@ type config struct {
 }
 
 const (
-	serverPort = "SERVER_PORT"
+	serverAddress     = "SERVER_ADDRESS"
+	serverJoinAddress = "SERVER_JOIN_ADDRESS"
 
-	raftNodeId = "RAFT_NODE_ID"
-	raftPort   = "RAFT_PORT"
-	raftVolDir = "RAFT_VOL_DIR"
+	raftNodeId  = "RAFT_NODE_ID"
+	raftAddress = "RAFT_ADDRESS"
+	raftVolDir  = "RAFT_VOL_DIR"
 )
 
 var confKeys = []string{
-	serverPort,
+	serverAddress,
 
 	raftNodeId,
-	raftPort,
+	raftAddress,
 	raftVolDir,
 }
 
@@ -67,6 +73,32 @@ const (
 	raftLogCacheSize = 512
 )
 
+func retryJoin(conf config) int {
+	form := raft_handler.RequestJoin{
+		NodeID:      conf.Raft.NodeId,
+		RaftAddress: conf.Raft.Address,
+	}
+
+	postBody, _ := json.Marshal(form)
+	responseBody := bytes.NewBuffer(postBody)
+
+	fmt.Println(conf.Server.JoinAddress)
+	fmt.Printf("%+v", form)
+	fmt.Println(postBody)
+
+	resp, err := http.Post(fmt.Sprintf("%s/raft/join", conf.Server.JoinAddress), "application/json", responseBody)
+
+	//Handle Error
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Println(resp)
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode
+}
+
 // main entry point of application start
 // run using CONFIG=config.yaml ./program
 func main() {
@@ -80,11 +112,12 @@ func main() {
 
 	conf := config{
 		Server: configServer{
-			Port: v.GetInt(serverPort),
+			Address:     v.GetString(serverAddress),
+			JoinAddress: v.GetString(serverJoinAddress),
 		},
 		Raft: configRaft{
 			NodeId:    v.GetString(raftNodeId),
-			Port:      v.GetInt(raftPort),
+			Address:   v.GetString(raftAddress),
 			VolumeDir: v.GetString(raftVolDir),
 		},
 	}
@@ -104,8 +137,6 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "error close badgerDB: %s\n", err.Error())
 		}
 	}()
-
-	var raftBinAddr = fmt.Sprintf(":%d", conf.Raft.Port)
 
 	raftConf := raft.DefaultConfig()
 	raftConf.LocalID = raft.ServerID(conf.Raft.NodeId)
@@ -132,13 +163,13 @@ func main() {
 		return
 	}
 
-	tcpAddr, err := net.ResolveTCPAddr("tcp", raftBinAddr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", conf.Raft.Address)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	transport, err := raft.NewTCPTransport(raftBinAddr, tcpAddr, maxPool, tcpTimeout, os.Stdout)
+	transport, err := raft.NewTCPTransport(conf.Raft.Address, tcpAddr, maxPool, tcpTimeout, os.Stdout)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -150,19 +181,31 @@ func main() {
 		return
 	}
 
-	// always start single server as a leader
-	configuration := raft.Configuration{
-		Servers: []raft.Server{
-			{
-				ID:      raft.ServerID(conf.Raft.NodeId),
-				Address: transport.LocalAddr(),
+	if len(conf.Server.JoinAddress) > 0 {
+
+		for {
+			statusCode := retryJoin(conf)
+			time.Sleep(4 * time.Second)
+			if statusCode == 200 {
+				break
+			}
+		}
+	} else {
+
+		// always start single server as a leader
+		configuration := raft.Configuration{
+			Servers: []raft.Server{
+				{
+					ID:      raft.ServerID(conf.Raft.NodeId),
+					Address: transport.LocalAddr(),
+				},
 			},
-		},
+		}
+
+		raftServer.BootstrapCluster(configuration)
 	}
 
-	raftServer.BootstrapCluster(configuration)
-
-	srv := server.New(fmt.Sprintf(":%d", conf.Server.Port), badgerDB, raftServer)
+	srv := server.New(fmt.Sprintf(conf.Server.Address), badgerDB, raftServer)
 	if err := srv.Start(); err != nil {
 		log.Fatal(err)
 	}

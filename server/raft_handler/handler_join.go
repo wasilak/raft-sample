@@ -7,15 +7,15 @@ import (
 	"net/http"
 )
 
-// requestJoin request payload for joining raft cluster
-type requestJoin struct {
+// RequestJoin request payload for joining raft cluster
+type RequestJoin struct {
 	NodeID      string `json:"node_id"`
 	RaftAddress string `json:"raft_address"`
 }
 
 // JoinRaftHandler handling join raft
 func (h handler) JoinRaftHandler(eCtx echo.Context) error {
-	var form = requestJoin{}
+	var form = RequestJoin{}
 	if err := eCtx.Bind(&form); err != nil {
 		return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"error": fmt.Sprintf("error binding: %s", err.Error()),

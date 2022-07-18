@@ -2,9 +2,10 @@ package raft_handler
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/hashicorp/raft"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 // RequestJoin request payload for joining raft cluster

@@ -3,11 +3,12 @@ package fsm
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
-	"github.com/hashicorp/raft"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/hashicorp/raft"
 )
 
 // badgerFSM raft.FSM implementation using badgerDB

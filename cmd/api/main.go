@@ -4,10 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-boltdb"
-	"github.com/spf13/viper"
 	"log"
 	"net"
 	"net/http"
@@ -17,6 +13,11 @@ import (
 	"ysf/raftsample/fsm"
 	"ysf/raftsample/server"
 	"ysf/raftsample/server/raft_handler"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/hashicorp/raft"
+	raftboltdb "github.com/hashicorp/raft-boltdb"
+	"github.com/spf13/viper"
 )
 
 // configRaft configuration for raft node

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/raft"
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"strings"
 	"time"
 	"ysf/raftsample/fsm"
+
+	"github.com/hashicorp/raft"
+	"github.com/labstack/echo/v4"
 )
 
 // requestStore payload for storing new data in raft cluster

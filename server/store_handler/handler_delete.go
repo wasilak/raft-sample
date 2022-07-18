@@ -3,12 +3,13 @@ package store_handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/raft"
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"strings"
 	"time"
 	"ysf/raftsample/fsm"
+
+	"github.com/hashicorp/raft"
+	"github.com/labstack/echo/v4"
 )
 
 // Delete handling remove data from raft cluster. Delete will invoke raft.Apply to make this deleted in all cluster

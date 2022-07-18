@@ -1,15 +1,16 @@
 package server
 
 import (
-	"github.com/dgraph-io/badger/v2"
-	"github.com/hashicorp/raft"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 	_ "net/http/pprof"
 	"time"
 	"ysf/raftsample/server/raft_handler"
 	"ysf/raftsample/server/store_handler"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/hashicorp/raft"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 // srv struct handling server

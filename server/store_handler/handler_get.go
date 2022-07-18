@@ -3,9 +3,10 @@ package store_handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"strings"
+
+	"github.com/labstack/echo/v4"
 )
 
 // Get will fetched data from badgerDB where the raft use to store data.

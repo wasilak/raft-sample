@@ -4,8 +4,9 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"time"
-	"ysf/raftsample/server/raft_handler"
-	"ysf/raftsample/server/store_handler"
+
+	"github.com/wasilak/raft-sample/server/raft_handler"
+	"github.com/wasilak/raft-sample/server/store_handler"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/hashicorp/raft"
@@ -38,10 +39,11 @@ func New(listenAddr string, badgerDB *badger.DB, r *raft.Raft) *srv {
 	e.GET("/debug/pprof/*", echo.WrapHandler(http.DefaultServeMux))
 
 	// Raft server
-	raftHandler := raft_handler.New(r)
+	raftHandler := raft_handler.New(r, badgerDB)
 	e.POST("/raft/join", raftHandler.JoinRaftHandler)
 	e.POST("/raft/remove", raftHandler.RemoveRaftHandler)
 	e.GET("/raft/stats", raftHandler.StatsRaftHandler)
+	e.GET("/raft/pass_leadership", raftHandler.PassLeadership)
 
 	// Store server
 	storeHandler := store_handler.New(r, badgerDB)

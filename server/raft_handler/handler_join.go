@@ -45,7 +45,7 @@ func (h handler) JoinRaftHandler(eCtx echo.Context) error {
 	f := h.raft.AddVoter(raft.ServerID(nodeID), raft.ServerAddress(raftAddr), 0, 0)
 	if f.Error() != nil {
 		return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
-			"error": fmt.Sprintf("error add voter: %s", f.Error().Error()),
+			"error": fmt.Sprintf("error adding voter: %s", f.Error().Error()),
 		})
 	}
 

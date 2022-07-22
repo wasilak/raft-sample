@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"ysf/raftsample/fsm"
+
+	"github.com/wasilak/raft-sample/fsm"
 
 	"github.com/hashicorp/raft"
 	"github.com/labstack/echo/v4"

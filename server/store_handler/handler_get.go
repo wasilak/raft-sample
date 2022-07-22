@@ -1,12 +1,11 @@
 package store_handler
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/echo/v4"
+	"github.com/wasilak/raft-sample/utils"
 )
 
 // Get will fetched data from badgerDB where the raft use to store data.
@@ -19,40 +18,10 @@ func (h handler) Get(eCtx echo.Context) error {
 		})
 	}
 
-	var keyByte = []byte(key)
-
-	txn := h.db.NewTransaction(false)
-	defer func() {
-		_ = txn.Commit()
-	}()
-
-	item, err := txn.Get(keyByte)
+	data, err := utils.GetData(key, h.db)
 	if err != nil {
 		return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
-			"error": fmt.Sprintf("error getting key %s from storage: %s", key, err.Error()),
-		})
-	}
-
-	var value = make([]byte, 0)
-	err = item.Value(func(val []byte) error {
-		value = append(value, val...)
-		return nil
-	})
-
-	if err != nil {
-		return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
-			"error": fmt.Sprintf("error appending byte value of key %s from storage: %s", key, err.Error()),
-		})
-	}
-
-	var data interface{}
-	if value != nil && len(value) > 0 {
-		err = json.Unmarshal(value, &data)
-	}
-
-	if err != nil {
-		return eCtx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
-			"error": fmt.Sprintf("error unmarshal data to interface: %s", err.Error()),
+			"error": err,
 		})
 	}
 

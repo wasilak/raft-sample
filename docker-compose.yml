@@ -7,13 +7,14 @@ version: "3.1"
 
 services:
   node1:
-    # image: ysf/raftsample
+    &node1
     build: .
     environment:
-      - SERVER_PORT=2221
-      - RAFT_NODE_ID="node1"
-      - RAFT_PORT=1111
-      - RAFT_VOL_DIR="node_data"
+      SERVER_ADDRESS: node1:2221
+      RAFT_NODE_ID: "node1"
+      RAFT_ADDRESS: node1:1111
+      RAFT_VOL_DIR: "node_data"
+      SERVER_BOOTSTRAP: true
     volumes:
       - "./data/node1:/var/lib/raft/data"
     ports:
@@ -21,57 +22,64 @@ services:
       - 2221:2221
 
   node2:
-    # image: ysf/raftsample
-    image: raft-sample_node1
+    <<: *node1
     environment:
-      - SERVER_PORT=2221
-      - RAFT_NODE_ID="node2"
-      - RAFT_PORT=1111
-      - RAFT_VOL_DIR="node_data"
+      SERVER_ADDRESS: node2:2221
+      RAFT_NODE_ID: "node2"
+      RAFT_ADDRESS: node2:1111
+      RAFT_VOL_DIR: "node_data"
+      SERVER_JOIN_ADDRESS: http://node1:2221
     volumes:
       - "./data/node2:/var/lib/raft/data"
+    depends_on:
+      - node1
     ports:
       - 1112:1111
       - 2222:2221
-
   node3:
-    # image: ysf/raftsample
-    image: raft-sample_node1
+    <<: *node1
     environment:
-      - SERVER_PORT=2221
-      - RAFT_NODE_ID="node3"
-      - RAFT_PORT=1111
-      - RAFT_VOL_DIR="node_data"
+      SERVER_ADDRESS: node3:2221
+      RAFT_NODE_ID: "node3"
+      RAFT_ADDRESS: node3:1111
+      RAFT_VOL_DIR: "node_data"
+      SERVER_JOIN_ADDRESS: http://node1:2221
     volumes:
       - "./data/node3:/var/lib/raft/data"
+    depends_on:
+      - node1
     ports:
       - 1113:1111
       - 2223:2221
 
   node4:
-    # image: ysf/raftsample
-    image: raft-sample_node1
+    <<: *node1
     environment:
-      - SERVER_PORT=2221
-      - RAFT_NODE_ID="node4"
-      - RAFT_PORT=1111
-      - RAFT_VOL_DIR="node_data"
+      SERVER_ADDRESS: node4:2221
+      RAFT_NODE_ID: "node4"
+      RAFT_ADDRESS: node4:1111
+      RAFT_VOL_DIR: "node_data"
+      SERVER_JOIN_ADDRESS: http://node1:2221
     volumes:
       - "./data/node4:/var/lib/raft/data"
+    depends_on:
+      - node1
     ports:
       - 1114:1111
       - 2224:2221
 
   node5:
-    # image: ysf/raftsample
-    image: raft-sample_node1
+    <<: *node1
     environment:
-      - SERVER_PORT=2221
-      - RAFT_NODE_ID="node5"
-      - RAFT_PORT=1111
-      - RAFT_VOL_DIR="node_data"
+      SERVER_ADDRESS: node5:2221
+      RAFT_NODE_ID: "node5"
+      RAFT_ADDRESS: node5:1111
+      RAFT_VOL_DIR: "node_data"
+      SERVER_JOIN_ADDRESS: http://node1:2221
     volumes:
       - "./data/node5:/var/lib/raft/data"
+    depends_on:
+      - node1
     ports:
       - 1115:1111
       - 2225:2221

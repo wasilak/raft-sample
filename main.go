@@ -9,10 +9,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
-	"ysf/raftsample/fsm"
-	"ysf/raftsample/server"
-	"ysf/raftsample/server/raft_handler"
+
+	"github.com/wasilak/raft-sample/fsm"
+	"github.com/wasilak/raft-sample/server"
+	"github.com/wasilak/raft-sample/server/raft_handler"
+	"github.com/wasilak/raft-sample/utils"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/hashicorp/raft"
@@ -20,28 +23,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-// configRaft configuration for raft node
-type configRaft struct {
-	NodeId    string `mapstructure:"node_id"`
-	Address   string `mapstructure:"address"`
-	VolumeDir string `mapstructure:"volume_dir"`
-}
-
-// configServer configuration for HTTP server
-type configServer struct {
-	Address     string `mapstructure:"address"`
-	JoinAddress string `mapstructure:"join_address"`
-}
-
-// config configuration
-type config struct {
-	Server configServer `mapstructure:"server"`
-	Raft   configRaft   `mapstructure:"raft"`
-}
-
 const (
 	serverAddress     = "SERVER_ADDRESS"
 	serverJoinAddress = "SERVER_JOIN_ADDRESS"
+
+	serverBootstrap = "IS_SERVER"
 
 	raftNodeId  = "RAFT_NODE_ID"
 	raftAddress = "RAFT_ADDRESS"
@@ -50,6 +36,8 @@ const (
 
 var confKeys = []string{
 	serverAddress,
+	serverJoinAddress,
+	serverBootstrap,
 
 	raftNodeId,
 	raftAddress,
@@ -74,7 +62,7 @@ const (
 	raftLogCacheSize = 512
 )
 
-func retryJoin(conf config) int {
+func retryJoin(conf utils.Config) int {
 	form := raft_handler.RequestJoin{
 		NodeID:      conf.Raft.NodeId,
 		RaftAddress: conf.Raft.Address,
@@ -83,25 +71,19 @@ func retryJoin(conf config) int {
 	postBody, _ := json.Marshal(form)
 	responseBody := bytes.NewBuffer(postBody)
 
-	fmt.Println(conf.Server.JoinAddress)
-	fmt.Printf("%+v", form)
-	fmt.Println(postBody)
-
 	resp, err := http.Post(fmt.Sprintf("%s/raft/join", conf.Server.JoinAddress), "application/json", responseBody)
 
 	//Handle Error
 	if err != nil {
 		log.Fatal(err)
-	} else {
-		log.Println(resp)
 	}
+
 	defer resp.Body.Close()
 
 	return resp.StatusCode
 }
 
 // main entry point of application start
-// run using CONFIG=config.yaml ./program
 func main() {
 
 	var v = viper.New()
@@ -111,12 +93,15 @@ func main() {
 		return
 	}
 
-	conf := config{
-		Server: configServer{
-			Address:     v.GetString(serverAddress),
-			JoinAddress: v.GetString(serverJoinAddress),
+	viper.SetDefault(serverBootstrap, false)
+
+	conf := utils.Config{
+		Server: utils.ConfigServer{
+			Address:         v.GetString(serverAddress),
+			JoinAddress:     v.GetString(serverJoinAddress),
+			ServerBootstrap: v.GetBool(serverBootstrap),
 		},
-		Raft: configRaft{
+		Raft: utils.ConfigRaft{
 			NodeId:    v.GetString(raftNodeId),
 			Address:   v.GetString(raftAddress),
 			VolumeDir: v.GetString(raftVolDir),
@@ -182,16 +167,7 @@ func main() {
 		return
 	}
 
-	if len(conf.Server.JoinAddress) > 0 {
-
-		for {
-			statusCode := retryJoin(conf)
-			time.Sleep(4 * time.Second)
-			if statusCode == 200 {
-				break
-			}
-		}
-	} else {
+	if conf.Server.ServerBootstrap {
 
 		// always start single server as a leader
 		configuration := raft.Configuration{
@@ -203,8 +179,52 @@ func main() {
 			},
 		}
 
+		log.Println(configuration)
+
 		raftServer.BootstrapCluster(configuration)
 	}
+
+	if len(conf.Server.JoinAddress) > 0 {
+
+		for {
+			statusCode := retryJoin(conf)
+			time.Sleep(4 * time.Second)
+			if statusCode == 200 {
+				break
+			}
+		}
+	}
+
+	data := utils.RequestStore{
+		Key:   fmt.Sprintf("member_%s", conf.Raft.NodeId),
+		Value: conf,
+	}
+
+	utils.StoreData(data, raftServer, badgerDB)
+
+	seeNewLeader := func(o *raft.Observation) bool { _, ok := o.Data.(raft.LeaderObservation); return ok }
+	leaderCh := make(chan raft.Observation)
+
+	raftServer.RegisterObserver(raft.NewObserver(leaderCh, false, seeNewLeader))
+
+	leaderChanges := new(uint32)
+	go func() {
+		// for elem := range leaderCh {
+		for range leaderCh {
+			atomic.AddUint32(leaderChanges, 1)
+			// elemVal := elem.Data.(raft.LeaderObservation)
+
+			if raftServer.State() == raft.Leader {
+				data := utils.RequestStore{
+					Key:   "CurrentLeader",
+					Value: conf,
+				}
+
+				utils.StoreData(data, raftServer, badgerDB)
+			}
+
+		}
+	}()
 
 	srv := server.New(fmt.Sprintf(conf.Server.Address), badgerDB, raftServer)
 	if err := srv.Start(); err != nil {

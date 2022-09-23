@@ -2,8 +2,6 @@
 
 Straightforward implementation of Raft Consensus.
 
-If you're come from [my Medium's blog](https://yusufs.medium.com/creating-distributed-kv-database-by-implementing-raft-consensus-using-golang-d0884eef2e28) 
-you should refer to this release version [v.0.0.1-alpha](https://github.com/yusufsyaifudin/raft-sample/releases/tag/v.0.0.1-alpha) or [browse the code here](https://github.com/yusufsyaifudin/raft-sample/tree/v.0.0.1-alpha).
 
 ## Why Another Example?
 
@@ -162,3 +160,8 @@ To delete data, use this (change `raft.leader.server` to the Leader HTTP address
 ```curl
 curl --location --request DELETE 'raft.leader.server/store/key'
 ```
+
+links
+- http://localhost:2221/raft/stats
+- http://localhost:2222/raft/stats
+- http://localhost:2223/raft/stats

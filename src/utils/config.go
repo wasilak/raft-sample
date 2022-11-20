@@ -9,13 +9,14 @@ type ConfigRaft struct {
 
 // configServer configuration for HTTP server
 type ConfigServer struct {
-	Address         string `mapstructure:"address"`
-	JoinAddress     string `mapstructure:"join_address"`
-	ServerBootstrap bool   `mapstructure:"server_bootstrap"`
+	Address     string `mapstructure:"address"`
+	JoinAddress string `mapstructure:"join_address"`
+	IsServer    bool   `mapstructure:"is_server"`
 }
 
 // config configuration
 type Config struct {
 	Server ConfigServer `mapstructure:"server"`
 	Raft   ConfigRaft   `mapstructure:"raft"`
+	Peers  []string     `mapstructure:"peers"`
 }

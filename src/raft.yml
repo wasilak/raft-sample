@@ -1,0 +1,6 @@
+---
+debug: true
+peers:
+  - http://node3:2221
+  - http://node2:2221
+  - http://node1:2221

@@ -7,6 +7,7 @@ import (
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/hashicorp/raft"
+	"github.com/labstack/gommon/log"
 )
 
 func PassLeadership(handler_raft *raft.Raft, handler_db *badger.DB) error {
@@ -35,6 +36,8 @@ func passToLeaderAndTransferLeadership(handler_db *badger.DB) error {
 	}
 
 	url := fmt.Sprintf("http://%s/raft/pass_leadership", leader.Server.Address)
+
+	log.Debug(url)
 
 	resp, err := http.Get(url)
 

@@ -1,36 +1,37 @@
-# docker build -t ysf/raftsample .
-# then run: docker-compose up
-# to connect, use IP from `docker network inspect bridge` and see the gateway IP
-# don't use localhost, 127.0.0.1 or 0.0.0.0
-
 version: "3.1"
 
 services:
   node1:
     &node1
     build: .
+    command: go run .
+    hostname: node1
     environment:
-      SERVER_ADDRESS: node1:2221
-      RAFT_NODE_ID: "node1"
-      RAFT_ADDRESS: node1:1111
-      RAFT_VOL_DIR: "node_data"
-      SERVER_BOOTSTRAP: true
+      RAFT_SERVER_ADDRESS: node1:2221
+      RAFT_RAFT_NODE_ID: "node1"
+      RAFT_RAFT_ADDRESS: node1:1111
+      RAFT_RAFT_VOL_DIR: "/var/lib/raft/data/node_data"
+      RAFT_SERVER_BOOTSTRAP: true
+      RAFT_IS_SERVER: true
     volumes:
-      - "./data/node1:/var/lib/raft/data"
+      - "./src:/app"
+      - "./data/node1:/var/lib/raft/data/node_data"
     ports:
       - 1111:1111
       - 2221:2221
-
   node2:
     <<: *node1
+    hostname: node2
     environment:
-      SERVER_ADDRESS: node2:2221
-      RAFT_NODE_ID: "node2"
-      RAFT_ADDRESS: node2:1111
-      RAFT_VOL_DIR: "node_data"
-      SERVER_JOIN_ADDRESS: http://node1:2221
+      RAFT_SERVER_ADDRESS: node2:2221
+      RAFT_RAFT_NODE_ID: "node2"
+      RAFT_RAFT_ADDRESS: node2:1111
+      RAFT_RAFT_VOL_DIR: "/var/lib/raft/data/node_data"
+      # RAFT_SERVER_JOIN_ADDRESS: http://node1:2221
+      RAFT_IS_SERVER: true
     volumes:
-      - "./data/node2:/var/lib/raft/data"
+      - "./src:/app"
+      - "./data/node2:/var/lib/raft/data/node_data"
     depends_on:
       - node1
     ports:
@@ -38,48 +39,37 @@ services:
       - 2222:2221
   node3:
     <<: *node1
+    hostname: node3
     environment:
-      SERVER_ADDRESS: node3:2221
-      RAFT_NODE_ID: "node3"
-      RAFT_ADDRESS: node3:1111
-      RAFT_VOL_DIR: "node_data"
-      SERVER_JOIN_ADDRESS: http://node1:2221
+      RAFT_SERVER_ADDRESS: node3:2221
+      RAFT_RAFT_NODE_ID: "node3"
+      RAFT_RAFT_ADDRESS: node3:1111
+      RAFT_RAFT_VOL_DIR: "/var/lib/raft/data/node_data"
+      # RAFT_SERVER_JOIN_ADDRESS: http://node1:2221
+      RAFT_IS_SERVER: true
     volumes:
-      - "./data/node3:/var/lib/raft/data"
+      - "./src:/app"
+      - "./data/node3:/var/lib/raft/data/node_data"
     depends_on:
       - node1
     ports:
       - 1113:1111
       - 2223:2221
-
-  node4:
-    <<: *node1
-    environment:
-      SERVER_ADDRESS: node4:2221
-      RAFT_NODE_ID: "node4"
-      RAFT_ADDRESS: node4:1111
-      RAFT_VOL_DIR: "node_data"
-      SERVER_JOIN_ADDRESS: http://node1:2221
-    volumes:
-      - "./data/node4:/var/lib/raft/data"
-    depends_on:
-      - node1
-    ports:
-      - 1114:1111
-      - 2224:2221
-
-  node5:
-    <<: *node1
-    environment:
-      SERVER_ADDRESS: node5:2221
-      RAFT_NODE_ID: "node5"
-      RAFT_ADDRESS: node5:1111
-      RAFT_VOL_DIR: "node_data"
-      SERVER_JOIN_ADDRESS: http://node1:2221
-    volumes:
-      - "./data/node5:/var/lib/raft/data"
-    depends_on:
-      - node1
-    ports:
-      - 1115:1111
-      - 2225:2221
+      # node4:
+      #   <<: *node1
+      #   hostname: node4
+      #   environment:
+      #     RAFT_SERVER_ADDRESS: node4:2221
+      #     RAFT_RAFT_NODE_ID: "node4"
+      #     RAFT_RAFT_ADDRESS: node4:1111
+      #     RAFT_RAFT_VOL_DIR: "/var/lib/raft/data/node_data"
+      # RAFT_SERVER_JOIN_ADDRESS: http://node1:2221
+      #     RAFT_IS_SERVER: false
+      #   volumes:
+      #     - "./src:/app"
+      #     - "./data/node4:/var/lib/raft/data/node_data"
+      #   depends_on:
+      #     - node1
+      #   ports:
+      #     - 1114:1111
+      #     - 2224:2221
